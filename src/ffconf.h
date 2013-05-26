@@ -1,8 +1,5 @@
-/* CHIBIOS FIX */
-#include "ch.h"
-
 /*---------------------------------------------------------------------------/
-/  FatFs - FAT file system module configuration file  R0.09  (C)ChaN, 2011
+/  FatFs - FAT file system module configuration file  R0.09b (C)ChaN, 2013
 /----------------------------------------------------------------------------/
 /
 / CAUTION! Do not forget to make clean the project after any changes to
@@ -10,14 +7,14 @@
 /
 /----------------------------------------------------------------------------*/
 #ifndef _FFCONF
-#define _FFCONF 6502	/* Revision ID */
-
+#define _FFCONF 82786	/* Revision ID */
+#include "ch.h"
 
 /*---------------------------------------------------------------------------/
 / Functions and Buffer Configurations
 /----------------------------------------------------------------------------*/
 
-#define	_FS_TINY		1	/* 0:Normal or 1:Tiny */
+#define	_FS_TINY		0	/* 0:Normal or 1:Tiny */
 /* When _FS_TINY is set to 1, FatFs uses the sector buffer in the file system
 /  object instead of the sector buffer in the individual file object for file
 /  data transfer. This reduces memory consumption 512 bytes each file object. */
@@ -43,17 +40,20 @@
 /* To enable string functions, set _USE_STRFUNC to 1 or 2. */
 
 
-#define	_USE_MKFS		0	/* 0:Disable or 1:Enable */
+#define	_USE_MKFS		1	/* 0:Disable or 1:Enable */
 /* To enable f_mkfs function, set _USE_MKFS to 1 and set _FS_READONLY to 0 */
-
-
-#define	_USE_FORWARD	0	/* 0:Disable or 1:Enable */
-/* To enable f_forward function, set _USE_FORWARD to 1 and set _FS_TINY to 1. */
 
 
 #define	_USE_FASTSEEK	0	/* 0:Disable or 1:Enable */
 /* To enable fast seek feature, set _USE_FASTSEEK to 1. */
 
+
+#define _USE_LABEL		1	/* 0:Disable or 1:Enable */
+/* To enable volume label functions, set _USE_LAVEL to 1 */
+
+
+#define	_USE_FORWARD	0	/* 0:Disable or 1:Enable */
+/* To enable f_forward function, set _USE_FORWARD to 1 and set _FS_TINY to 1. */
 
 
 /*---------------------------------------------------------------------------/
@@ -123,7 +123,6 @@
 /  Note that output of the f_readdir fnction is affected by this option. */
 
 
-
 /*---------------------------------------------------------------------------/
 / Physical Drive Configurations
 /----------------------------------------------------------------------------*/
@@ -140,7 +139,7 @@
 /  and GET_SECTOR_SIZE command must be implememted to the disk_ioctl function. */
 
 
-#define	_MULTI_PARTITION	0	/* 0:Single partition, 1/2:Enable multiple partition */
+#define	_MULTI_PARTITION	0	/* 0:Single partition, 1:Enable multiple partition */
 /* When set to 0, each volume is bound to the same physical drive number and
 / it can mount only first primaly partition. When it is set to 1, each volume
 / is tied to the partitions listed in VolToPart[]. */
@@ -175,7 +174,7 @@
 
 #define _FS_REENTRANT	0		/* 0:Disable or 1:Enable */
 #define _FS_TIMEOUT		1000	/* Timeout period in unit of time ticks */
-#define	_SYNC_t			Semaphore * /* O/S dependent type of sync object. e.g. HANDLE, OS_EVENT*, ID and etc.. */
+#define	_SYNC_t			Semaphore	/* O/S dependent type of sync object. e.g. HANDLE, OS_EVENT*, ID and etc.. */
 
 /* The _FS_REENTRANT option switches the reentrancy (thread safe) of the FatFs module.
 /
@@ -185,9 +184,9 @@
 /      function must be added to the project. */
 
 
-#define	_FS_SHARE	0	/* 0:Disable or >=1:Enable */
-/* To enable file shareing feature, set _FS_SHARE to 1 or greater. The value
-   defines how many files can be opened simultaneously. */
+#define	_FS_LOCK	0	/* 0:Disable or >=1:Enable */
+/* To enable file lock control feature, set _FS_LOCK to 1 or greater.
+   The value defines how many files can be opened simultaneously. */
 
 
 #endif /* _FFCONFIG */

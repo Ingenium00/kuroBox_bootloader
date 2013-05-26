@@ -49,15 +49,15 @@ int flashPageErase(flashpage_t page){
   flashWaitWhileBusy();
 
   /* Start deletion of page. */
-  FLASH->CR |= FLASH_CR_PER;
-  FLASH->AR = FLASH_ADDRESS_OF_PAGE(page);
+  FLASH->CR |= FLASH_CR_SER;
+  //FLASH->AR = FLASH_ADDRESS_OF_PAGE(page);
   FLASH->CR |= FLASH_CR_STRT;
 
   /* Wait until it's finished. */
   flashWaitWhileBusy();
 
   /* Page erase flag does not clear automatically. */
-  FLASH->CR &= !FLASH_CR_PER;
+  FLASH->CR &= !FLASH_CR_SER;
 
   /* Lock flash again */
   flashLock();
@@ -191,3 +191,5 @@ int flashPageWriteIfNeeded(flashpage_t page, const flashdata_t* buffer){
 
   return err;
 }
+
+
