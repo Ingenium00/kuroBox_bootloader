@@ -5,7 +5,8 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -Os -ggdb -fomit-frame-pointer -falign-functions=16
+#  USE_OPT = -Os -ggdb -fomit-frame-pointer -falign-functions=16
+  USE_OPT = -g -O0 -ggdb -fomit-frame-pointer -falign-functions=16 -std=gnu99
 endif
 
 # C specific options here (added to USE_OPT).
@@ -55,19 +56,18 @@ endif
 #
 
 # Define project name here
-PROJECT = ch
+PROJECT = kuroBox_bootloader
 
 # Imported source files and paths
-CHIBIOS = ../..
-include $(CHIBIOS)/boards/OLIMEX_STM32_P107/board.mk
-include $(CHIBIOS)/os/hal/platforms/STM32F1xx/platform.mk
+CHIBIOS = ../../chibios
+include src/cfg/board.mk
+include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
-include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F1xx/port.mk
+include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
-include fatfs.mk
 
 # Define linker script file here
-LDSCRIPT= $(PORTLD)/STM32F107xC.ld
+LDSCRIPT= $(PORTLD)/STM32F407xG.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -79,8 +79,12 @@ CSRC = $(PORTSRC) \
        $(FATFSSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/syscalls.c \
-       flash/ihex.c flash/flash.c flash/helper.c \
-       main.c
+       src/flash/ihex.c src/flash/helper.c \
+       src/flash/stm32f4xx_flash.c \
+       src/flash/flash.c \
+       src/ff.c src/fatfs_diskio.c \
+       src/main.c
+
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -112,7 +116,8 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(FATFSINC) \
-         $(CHIBIOS)/os/various
+         $(CHIBIOS)/os/various \
+         src
 
 #
 # Project, sources and paths
@@ -122,7 +127,7 @@ INCDIR = $(PORTINC) $(KERNINC) \
 # Compiler settings
 #
 
-MCU  = cortex-m3
+MCU  = cortex-m4
 
 #TRGT = arm-elf-
 TRGT = arm-none-eabi-
@@ -200,6 +205,8 @@ ULIBS =
 #
 # End of user defines
 ##############################################################################
+
+DDEFS += -DCORTEX_USE_FPU=FALSE
 
 ifeq ($(USE_FWLIB),yes)
   include $(CHIBIOS)/ext/stm32lib/stm32lib.mk
