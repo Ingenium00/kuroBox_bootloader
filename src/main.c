@@ -60,9 +60,14 @@ static SerialConfig serial1_cfg = {
 static FATFS SDC_FS;
 static volatile bool_t flashing;
 struct FlashSector Flash[FLASH_SECTOR_COUNT];
+static IHexRecord irec;
+static uint16_t addressOffset;
+static uint32_t address;
+static enum IHexErrors ihexError;
 
 //-----------------------------------------------------------------------------
-static WORKING_AREA(waFlasherThread, 1024*8);
+/*
+static WORKING_AREA(waFlasherThread, 1024*2);
 static msg_t FlasherThread(void *arg)
 {
 	(void)arg;
@@ -70,7 +75,6 @@ static msg_t FlasherThread(void *arg)
 	BaseSequentialStream * prnt = (BaseSequentialStream *)&SD1;
 	if (!sdc_lld_is_card_inserted(&SDCD1))
 		loaderError(BOOTLOADER_ERROR_NOCARD);
-
 	if (sdcConnect(&SDCD1))
 		loaderError(BOOTLOADER_ERROR_NOCARD);
 
@@ -158,9 +162,9 @@ static msg_t FlasherThread(void *arg)
 		break;
 	}
 	jumpToApp(FLASH_USER_BASE);
-
 	return 0;
 }
+*/
 
 //-----------------------------------------------------------------------------
 int main(void)
@@ -182,7 +186,90 @@ int main(void)
 
 	sdcStart(&SDCD1, &sdio_cfg);
 
-	chThdCreateStatic(waFlasherThread, sizeof(waFlasherThread),	NORMALPRIO, FlasherThread, NULL);
+//	chThdCreateStatic(waFlasherThread, sizeof(waFlasherThread),	NORMALPRIO, FlasherThread, NULL);
+
+	if (!sdc_lld_is_card_inserted(&SDCD1))
+		loaderError(BOOTLOADER_ERROR_NOCARD);
+	if (sdcConnect(&SDCD1))
+		loaderError(BOOTLOADER_ERROR_NOCARD);
+
+	chThdSleepMilliseconds(150);
+	int err = f_mount(0, &SDC_FS);
+	if (err != FR_OK)
+	{
+		sdcDisconnect(&SDCD1);
+		loaderError(BOOTLOADER_ERROR_BADFS);
+	}
+
+	chThdSleepMilliseconds(150);
+	FIL fp;
+	if (f_open(&fp, FIRMWARE_FILENAME, FA_READ) != FR_OK)
+		loaderError(BOOTLOADER_ERROR_NOFILE);
+
+	// we start flashing now.
+	flashing = TRUE;
+	flash_init(Flash);
+
+	while ((ihexError = Read_IHexRecord(&irec, &fp)) == IHEX_OK)
+	{
+		palTogglePad(GPIOB, GPIOB_LED1);
+		switch (irec.type)
+		{
+		case IHEX_TYPE_00: //< Data Record
+			address = (((uint32_t) addressOffset) << 16) + irec.address;
+
+			chprintf(prnt, "Address: %.8x : %.8x\n\r", address, irec.address);
+			if (flash_write(Flash, address, irec.data, irec.dataLen) != 0)
+				loaderError(BOOTLOADER_ERROR_BAD_FLASH);
+
+			break;
+
+		case IHEX_TYPE_04: //< Extended Linear Address Record
+			addressOffset = (((uint16_t) irec.data[0]) << 8) + irec.data[1];
+			break;
+
+		case IHEX_TYPE_01: //< End of File Record
+		case IHEX_TYPE_05: //< Start Linear Address Record
+			break;
+
+		case IHEX_TYPE_02: //< Extended Segment Address Record
+		case IHEX_TYPE_03: //< Start Segment Address Record
+			loaderError(BOOTLOADER_ERROR_BAD_HEX);
+			break;
+		}
+	}
+
+	flashing = FALSE;
+
+	f_close(&fp);
+
+	// Remove firmware so that we do not reflash if something goes wrong
+	f_unlink(FIRMWARE_FILENAME);
+
+	// Wait for write action to have finished
+	chThdSleepMilliseconds(500);
+
+	// unmounts it
+	f_mount(0, NULL);
+
+	sdcConnect(&SDCD1);
+
+	if (err)
+		loaderError(BOOTLOADER_ERROR_BAD_FLASH);
+
+	switch (ihexError)
+	{
+	case IHEX_OK:
+	case IHEX_ERROR_EOF:
+		break;
+	case IHEX_ERROR_FILE:
+	case IHEX_ERROR_INVALID_RECORD:
+	case IHEX_ERROR_INVALID_ARGUMENTS:
+	case IHEX_ERROR_NEWLINE:
+		loaderError(BOOTLOADER_ERROR_BAD_HEX);
+		break;
+	}
+	jumpToApp(FLASH_USER_BASE);
 
 	while (TRUE)
 	{
@@ -232,12 +319,13 @@ static void loaderError(unsigned int errno)
 {
 	unsigned int i;
 	flashing = FALSE;
+	palClearPad(GPIOB, GPIOB_LED1);
+	palClearPad(GPIOB, GPIOB_LED2);
+	palClearPad(GPIOA, GPIOA_LED3);
 
-	for (i = 0; i < errno; i++)
+	for (i = 0; i < errno*2; i++)
 	{
-		palClearPad(GPIOA, GPIOA_LED3);
-		chThdSleepMilliseconds(500);
-		palSetPad(GPIOA, GPIOA_LED3);
+		palTogglePad(GPIOA, GPIOA_LED3);
 		chThdSleepMilliseconds(500);
 	}
 

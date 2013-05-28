@@ -39,7 +39,7 @@
  */
 /*===========================================================================*/
 
-#define PORT_IDLE_THREAD_STACK_SIZE     1024*8
+//#define PORT_IDLE_THREAD_STACK_SIZE     128
 
 /**
  * @brief   System tick frequency.
