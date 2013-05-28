@@ -39,6 +39,8 @@
  */
 /*===========================================================================*/
 
+#define PORT_IDLE_THREAD_STACK_SIZE     1024*8
+
 /**
  * @brief   System tick frequency.
  * @details Frequency of the system timer that drives the system ticks. This
@@ -60,7 +62,7 @@
  *          and generally faster.
  */
 #if !defined(CH_TIME_QUANTUM) || defined(__DOXYGEN__)
-#define CH_TIME_QUANTUM                  0
+#define CH_TIME_QUANTUM                  20
 #endif
 
 /**
@@ -132,7 +134,7 @@
  * @note    The default is @p TRUE.
  */
 #if !defined(CH_USE_REGISTRY) || defined(__DOXYGEN__)
-#define CH_USE_REGISTRY                 FALSE
+#define CH_USE_REGISTRY                 TRUE
 #endif
 
 /**
@@ -143,7 +145,7 @@
  * @note    The default is @p TRUE.
  */
 #if !defined(CH_USE_WAITEXIT) || defined(__DOXYGEN__)
-#define CH_USE_WAITEXIT                 FALSE
+#define CH_USE_WAITEXIT                 TRUE
 #endif
 
 /**
@@ -518,9 +520,10 @@
  * @details This hook is invoked in case to a system halting error before
  *          the system is halted.
  */
+void panic_panic(void);
 #if !defined(SYSTEM_HALT_HOOK) || defined(__DOXYGEN__)
 #define SYSTEM_HALT_HOOK() {                                                \
-  /* System halt code here.*/                                               \
+  panic_panic();                                                            \
 }
 #endif
 

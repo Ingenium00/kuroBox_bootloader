@@ -72,19 +72,22 @@ LDSCRIPT= $(PORTLD)/STM32F407xG.ld
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 CSRC = $(PORTSRC) \
-       $(KERNSRC) \
-       $(HALSRC) \
-       $(PLATFORMSRC) \
-       $(BOARDSRC) \
-       $(FATFSSRC) \
-       $(CHIBIOS)/os/various/evtimer.c \
-       $(CHIBIOS)/os/various/syscalls.c \
-       src/flash/ihex.c src/flash/helper.c \
-       src/flash/stm32f4xx_flash.c \
-       src/flash/flash.c \
-       src/ff.c src/fatfs_diskio.c \
-       src/main.c
+        $(KERNSRC) \
+        $(HALSRC) \
+        $(PLATFORMSRC) \
+        $(BOARDSRC) \
+        $(FATFSSRC) \
+        $(CHIBIOS)/os/various/evtimer.c \
+        $(CHIBIOS)/os/various/chprintf.c \
+        $(CHIBIOS)/os/various/syscalls.c \
+        src/flash/ihex.c \
+        src/flash/stm32f4xx_flash.c \
+		src/flash/helper.c \
+        src/ff.c \
+        src/fatfs_diskio.c \
+        src/main.c
 
+#       src/flash/flash.c \
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

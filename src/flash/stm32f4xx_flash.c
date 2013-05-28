@@ -83,22 +83,9 @@
 #define SECTOR_MASK               ((uint32_t)0xFFFFFF07)
 
 /* Private macro -------------------------------------------------------------*/
-/* Base address of the Flash sectors */
-#define ADDR_FLASH_SECTOR_0     ((uint32_t)0x08000000) /* Base @ of Sector 0, 16 Kbyte */
-#define ADDR_FLASH_SECTOR_1     ((uint32_t)0x08004000) /* Base @ of Sector 1, 16 Kbyte */
-#define ADDR_FLASH_SECTOR_2     ((uint32_t)0x08008000) /* Base @ of Sector 2, 16 Kbyte */
-#define ADDR_FLASH_SECTOR_3     ((uint32_t)0x0800C000) /* Base @ of Sector 3, 16 Kbyte */
-#define ADDR_FLASH_SECTOR_4     ((uint32_t)0x08010000) /* Base @ of Sector 4, 64 Kbyte */
-#define ADDR_FLASH_SECTOR_5     ((uint32_t)0x08020000) /* Base @ of Sector 5, 128 Kbyte */
-#define ADDR_FLASH_SECTOR_6     ((uint32_t)0x08040000) /* Base @ of Sector 6, 128 Kbyte */
-#define ADDR_FLASH_SECTOR_7     ((uint32_t)0x08060000) /* Base @ of Sector 7, 128 Kbyte */
-#define ADDR_FLASH_SECTOR_8     ((uint32_t)0x08080000) /* Base @ of Sector 8, 128 Kbyte */
-#define ADDR_FLASH_SECTOR_9     ((uint32_t)0x080A0000) /* Base @ of Sector 9, 128 Kbyte */
-#define ADDR_FLASH_SECTOR_10    ((uint32_t)0x080C0000) /* Base @ of Sector 10, 128 Kbyte */
-#define ADDR_FLASH_SECTOR_11    ((uint32_t)0x080E0000) /* Base @ of Sector 11, 128 Kbyte */
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
-uint32_t FLASH_GetSectorNumber(uint32_t Address);
+void assert_param(int);
 /* Private functions ---------------------------------------------------------*/
 
 /** @defgroup FLASH_Private_Functions
@@ -180,7 +167,7 @@ uint32_t FLASH_GetSectorNumber(uint32_t Address);
 void FLASH_SetLatency(uint32_t FLASH_Latency)
 {
   /* Check the parameters */
-  //assert_param(IS_FLASH_LATENCY(FLASH_Latency));
+  assert_param(IS_FLASH_LATENCY(FLASH_Latency));
   
   /* Perform Byte access to FLASH_ACR[8:0] to set the Latency value */
   *(__IO uint8_t *)ACR_BYTE0_ADDRESS = (uint8_t)FLASH_Latency;
@@ -1056,11 +1043,11 @@ FLASH_Status FLASH_WaitForLastOperation(void)
   */ 
 
 /**
-  * @brief  Return the Flash sector Number of the address
+  * @brief  Return the Flash sector bitmask of the address
   * @param  None.
-  * @retval The Flash sector Number of the address
+  * @retval The Flash sector bitmask of the address
   */
-uint32_t FLASH_GetSectorNumber(uint32_t Address)
+uint32_t FLASH_GetSector(uint32_t Address)
 {
   uint32_t sector = 0;
 
@@ -1115,7 +1102,66 @@ uint32_t FLASH_GetSectorNumber(uint32_t Address)
     return sector;
 }
 
+/**
+  * @brief  Return the Flash sector Number of the address
+  * @param  None.
+  * @retval The Flash sector Number of the address
+  */
+uint32_t FLASH_GetSectorNumber(uint32_t Address)
+{
+  uint32_t sector = 0;
 
+  if(Address < ADDR_FLASH_SECTOR_1 && Address >= ADDR_FLASH_SECTOR_0)
+  {
+	sector = 0;
+  }
+  else if(Address < ADDR_FLASH_SECTOR_2 && Address >= ADDR_FLASH_SECTOR_1)
+  {
+	sector = 1;
+  }
+  else if(Address < ADDR_FLASH_SECTOR_3 && Address >= ADDR_FLASH_SECTOR_2)
+  {
+	sector = 2;
+  }
+  else if(Address < ADDR_FLASH_SECTOR_4 && Address >= ADDR_FLASH_SECTOR_3)
+  {
+	sector = 3;
+  }
+  else if(Address < ADDR_FLASH_SECTOR_5 && Address >= ADDR_FLASH_SECTOR_4)
+  {
+	sector = 4;
+  }
+  else if(Address < ADDR_FLASH_SECTOR_6 && Address >= ADDR_FLASH_SECTOR_5)
+  {
+	sector = 5;
+  }
+  else if(Address < ADDR_FLASH_SECTOR_7 && Address >= ADDR_FLASH_SECTOR_6)
+  {
+	sector = 6;
+  }
+  else if(Address < ADDR_FLASH_SECTOR_8 && Address >= ADDR_FLASH_SECTOR_7)
+  {
+	sector = 7;
+  }
+  else if(Address < ADDR_FLASH_SECTOR_9 && Address >= ADDR_FLASH_SECTOR_8)
+  {
+	sector = 8;
+  }
+  else if(Address < ADDR_FLASH_SECTOR_10 && Address >= ADDR_FLASH_SECTOR_9)
+  {
+	sector = 9;
+  }
+  else if(Address < ADDR_FLASH_SECTOR_11 && Address >= ADDR_FLASH_SECTOR_10)
+  {
+	sector = 10;
+  }
+  else/*(Address < FLASH_END_ADDR && Address >= ADDR_FLASH_SECTOR_11)*/
+  {
+	sector = 11;
+  }
+	return sector;
+
+}
 
 /**
   * @}

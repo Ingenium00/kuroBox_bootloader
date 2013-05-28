@@ -18,141 +18,129 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ch.h"
-#include "hal.h"
-
+#include <ch.h>
+#include <hal.h>
+#include <chprintf.h>
 #include "ff.h"
-
 #include "flashconfig.h"
-
 #include "flash/ihex.h"
-#include "flash/flash.h"
 #include "flash/helper.h"
 
-#define CONNECT_TIMEOUT_MS      500
-#define FIRMWARE_FILENAME       "kuroBox.hex"
+//-----------------------------------------------------------------------------
+#define CONNECT_TIMEOUT_MS      		500
+#define FIRMWARE_FILENAME       		"KUROBOX.HEX"
 
+//-----------------------------------------------------------------------------
 #define BOOTLOADER_ERROR_NOCARD     	1
 #define BOOTLOADER_ERROR_BADFS      	2
 #define BOOTLOADER_ERROR_NOFILE     	3
 #define BOOTLOADER_ERROR_BAD_HEX        4
 #define BOOTLOADER_ERROR_BAD_FLASH      5
+#define BOOTLOADER_ERROR_OTHER          6
+
+//-----------------------------------------------------------------------------
+static void loaderError(unsigned int errno);
+static void jumpToApp(uint32_t address);
+void panic_panic(void);
 
 //-----------------------------------------------------------------------------
 static const SDCConfig sdio_cfg = {
 	0
 };
 
+//-----------------------------------------------------------------------------
+static SerialConfig serial1_cfg = {
+	115200,
+	0,
+	USART_CR2_STOP1_BITS | USART_CR2_LINEN,
+	0
+};
 
-/**
- * @brief FS object.
- */
+//-----------------------------------------------------------------------------
 static FATFS SDC_FS;
+static volatile bool_t flashing;
+struct FlashSector Flash[FLASH_SECTOR_COUNT];
 
-static void loaderError(unsigned int errno)
-{
-	unsigned int i;
-
-	for (i = 0; i < errno; i++)
-	{
-		palClearPad(GPIOA, GPIOA_LED3);
-		chThdSleepMilliseconds(500);
-		palSetPad(GPIOA, GPIOA_LED3);
-		chThdSleepMilliseconds(500);
-	}
-
-	palClearPad(GPIOA, GPIOA_LED3);
-
-	flashJumpApplication(FLASH_USER_BASE);
-}
-
-/*===========================================================================*/
-/* Flash programming                                                         */
-/*===========================================================================*/
-
-static bool_t flashing = FALSE;
-static struct LinearFlashing flashPage;
-
-static WORKING_AREA(waFlasherThread, 2048);
+//-----------------------------------------------------------------------------
+static WORKING_AREA(waFlasherThread, 1024*8);
 static msg_t FlasherThread(void *arg)
 {
-	int err;
-	(void) arg;
+	(void)arg;
 
-	chRegSetThreadName("FlasherThread");
-
-	/* Wait for card */
+	BaseSequentialStream * prnt = (BaseSequentialStream *)&SD1;
 	if (!sdc_lld_is_card_inserted(&SDCD1))
 		loaderError(BOOTLOADER_ERROR_NOCARD);
 
 	if (sdcConnect(&SDCD1))
 		loaderError(BOOTLOADER_ERROR_NOCARD);
 
-	err = f_mount(0, &SDC_FS);
+	chThdSleepMilliseconds(150);
+	int err = f_mount(0, &SDC_FS);
 	if (err != FR_OK)
 	{
 		sdcDisconnect(&SDCD1);
 		loaderError(BOOTLOADER_ERROR_BADFS);
 	}
 
+	chThdSleepMilliseconds(150);
 	FIL fp;
 	if (f_open(&fp, FIRMWARE_FILENAME, FA_READ) != FR_OK)
 		loaderError(BOOTLOADER_ERROR_NOFILE);
 
-	/*
-	 * Here comes the flashing magic (pun intended).
-	 */
+	// we start flashing now.
+	IHexRecord irec;
+	uint16_t addressOffset;
+	uint32_t address;
+	enum IHexErrors ihexError;
 	flashing = TRUE;
 
-	IHexRecord irec;
-	uint16_t addressOffset = 0x00;
-	uint32_t address = 0x0;
-	enum IHexErrors ihexError;
-
-	linearFlashProgramStart(&flashPage);
+	flash_init(Flash);
 
 	while ((ihexError = Read_IHexRecord(&irec, &fp)) == IHEX_OK)
 	{
+		palTogglePad(GPIOB, GPIOB_LED1);
 		switch (irec.type)
 		{
-		case IHEX_TYPE_00: /**< Data Record */
+		case IHEX_TYPE_00: //< Data Record
 			address = (((uint32_t) addressOffset) << 16) + irec.address;
 
-			err = linearFlashProgram(&flashPage, address,
-					(flashdata_t*) irec.data, irec.dataLen);
+			chprintf(prnt, "Address: %.8x : %.8x\n\r", address, irec.address);
 
-			if (err)
+			if (flash_write(Flash, address, irec.data, irec.dataLen) != 0)
 				loaderError(BOOTLOADER_ERROR_BAD_FLASH);
 
 			break;
 
-		case IHEX_TYPE_04: /**< Extended Linear Address Record */
+		case IHEX_TYPE_04: //< Extended Linear Address Record
 			addressOffset = (((uint16_t) irec.data[0]) << 8) + irec.data[1];
 			break;
 
-		case IHEX_TYPE_01: /**< End of File Record */
-		case IHEX_TYPE_05: /**< Start Linear Address Record */
+		case IHEX_TYPE_01: //< End of File Record
+		case IHEX_TYPE_05: //< Start Linear Address Record
 			break;
 
-		case IHEX_TYPE_02: /**< Extended Segment Address Record */
-		case IHEX_TYPE_03: /**< Start Segment Address Record */
+		case IHEX_TYPE_02: //< Extended Segment Address Record
+		case IHEX_TYPE_03: //< Start Segment Address Record
 			loaderError(BOOTLOADER_ERROR_BAD_HEX);
 			break;
 		}
 
 	}
-
-	err = linearFlashProgramFinish(&flashPage);
+	//err = linearFlashProgramFinish(&flashPage);
+	flashing = FALSE;
 
 	f_close(&fp);
 
-	flashing = FALSE;
+	// Remove firmware so that we do not reflash if something goes wrong
+	//f_unlink(FIRMWARE_FILENAME);
 
-	/* Remove firmware so that we do not reflash if something goes wrong */
-	f_unlink(FIRMWARE_FILENAME);
-
-	/* Wait for write action to have finished */
+	// Wait for write action to have finished
 	chThdSleepMilliseconds(500);
+
+	// unmounts it
+	f_mount(0, NULL);
+
+	sdcConnect(&SDCD1);
 
 	if (err)
 		loaderError(BOOTLOADER_ERROR_BAD_FLASH);
@@ -169,69 +157,105 @@ static msg_t FlasherThread(void *arg)
 		loaderError(BOOTLOADER_ERROR_BAD_HEX);
 		break;
 	}
+	jumpToApp(FLASH_USER_BASE);
 
-	/* Yeha, finished flashing and everything */
-	flashJumpApplication(FLASH_USER_BASE);
-
-	return CH_SUCCESS;
+	return 0;
 }
 
-/*
- * Bootloader entry point.
- */
+//-----------------------------------------------------------------------------
 int main(void)
 {
-	/*
-	 * System initializations.
-	 * - HAL initialization, this also initializes the configured device drivers
-	 *   and performs the board-specific initializations.
-	 * - Kernel initialization, the main() function becomes a thread and the
-	 *   RTOS is active.
-	 */
 	halInit();
 	chSysInit();
+	sdStart(&SD1, &serial1_cfg);
+	BaseSequentialStream * prnt = (BaseSequentialStream *)&SD1;
+	chprintf(prnt, "%s (bootloader)\n\r\n\r", BOARD_NAME);
 
-	/*
-	 * Notify user about entering the bootloader
-	 */
 	palSetPad(GPIOB, GPIOB_LED1);
 	palSetPad(GPIOB, GPIOB_LED2);
 	palSetPad(GPIOA, GPIOA_LED3);
 	chThdSleepMilliseconds(500);
-	flashJumpApplication(FLASH_USER_BASE);
+	palClearPad(GPIOB, GPIOB_LED1);
+	palClearPad(GPIOB, GPIOB_LED2);
+	palClearPad(GPIOA, GPIOA_LED3);
+	chThdSleepMilliseconds(500);
 
-	/*
-	 * Activates the serial driver 1 using the driver default configuration.
-	 */
-	sdStart(&SD1, NULL);
-
-	/*
-	 * Initializes the SDIO
-	 */
 	sdcStart(&SDCD1, &sdio_cfg);
 
-	/*
-	 * Creates the flasher thread.
-	 */
-	chThdCreateStatic(waFlasherThread, sizeof(waFlasherThread),
-			NORMALPRIO, FlasherThread, NULL);
+	chThdCreateStatic(waFlasherThread, sizeof(waFlasherThread),	NORMALPRIO, FlasherThread, NULL);
 
 	while (TRUE)
 	{
-		/* Flash red LED depending on the flash status */
-		if (flashing)
-		{
-			palClearPad(GPIOB, GPIOB_LED2);
-			chThdSleepMilliseconds(100);
-			palSetPad(GPIOB, GPIOB_LED2);
-			chThdSleepMilliseconds(100);
-		}
-		else
-		{
-			chThdSleepMilliseconds(500);
-		}
-
+		palTogglePad(GPIOB, GPIOB_LED2);
+		chThdSleepMilliseconds(flashing?100:1000);
 	}
 
 	return 0;
+}
+
+
+//-----------------------------------------------------------------------------
+static void jumpToApp(uint32_t address)
+{
+	typedef void (*pFunction)(void);
+
+	pFunction Jump_To_Application;
+
+	// variable that will be loaded with the start address of the application
+	vu32* JumpAddress;
+	const vu32* ApplicationAddress = (vu32*) address;
+
+	// get jump address from application vector table
+	JumpAddress = (vu32*) ApplicationAddress[1];
+
+	// load this address into function pointer
+	Jump_To_Application = (pFunction) JumpAddress;
+
+	// reset all interrupts to default
+	chSysDisable();
+
+	// Clear pending interrupts just to be on the save side
+	SCB_ICSR = ICSR_PENDSVCLR;
+
+	// Disable all interrupts
+	int i;
+	for (i = 0; i < 8; i++)
+		NVIC->ICER[i] = NVIC->IABR[i];
+
+	// set stack pointer as in application's vector table
+	__set_MSP((u32)(ApplicationAddress[0]));
+	Jump_To_Application();
+}
+
+//-----------------------------------------------------------------------------
+static void loaderError(unsigned int errno)
+{
+	unsigned int i;
+	flashing = FALSE;
+
+	for (i = 0; i < errno; i++)
+	{
+		palClearPad(GPIOA, GPIOA_LED3);
+		chThdSleepMilliseconds(500);
+		palSetPad(GPIOA, GPIOA_LED3);
+		chThdSleepMilliseconds(500);
+	}
+
+	palClearPad(GPIOA, GPIOA_LED3);
+	chThdSleepMilliseconds(1500);
+
+	jumpToApp(FLASH_USER_BASE);
+}
+
+//-----------------------------------------------------------------------------
+void panic_panic(void)
+{
+	loaderError(BOOTLOADER_ERROR_OTHER);
+}
+
+//-----------------------------------------------------------------------------
+void assert_param(int statement)
+{
+	if ( !statement )
+		panic_panic();
 }
