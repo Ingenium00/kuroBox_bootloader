@@ -137,7 +137,7 @@ int main(void)
 
 	while ((ihexError = Read_IHexRecord(&irec, &fp)) == IHEX_OK)
 	{
-		if ( records++%20==0 )
+		if ( records++%150==0 )
 			palTogglePad(GPIOB, GPIOB_LED1);
 		switch (irec.type)
 		{
