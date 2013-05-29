@@ -51,16 +51,17 @@ static const SDCConfig sdio_cfg = {
 };
 
 //-----------------------------------------------------------------------------
+#if HAL_USE_SERIAL
 static SerialConfig serial1_cfg = {
 	115200,
 	0,
 	USART_CR2_STOP1_BITS | USART_CR2_LINEN,
 	0
 };
+#endif
 
 //-----------------------------------------------------------------------------
 static FATFS SDC_FS;
-static volatile bool_t flashing;
 struct FlashSector Flash[FLASH_SECTOR_COUNT];
 static IHexRecord irec;
 static uint16_t addressOffset;
@@ -72,13 +73,38 @@ int main(void)
 {
 	halInit();
 	chSysInit();
-	sdStart(&SD1, &serial1_cfg);
-	BaseSequentialStream * prnt = (BaseSequentialStream *)&SD1;
-	chprintf(prnt, "%s (bootloader)\n\r\n\r", BOARD_NAME);
+	chThdSleepMilliseconds(1);
 
 	palSetPad(GPIOB, GPIOB_LED1);
 	palSetPad(GPIOB, GPIOB_LED2);
 	palSetPad(GPIOA, GPIOA_LED3);
+
+	// make them press the damm buttons for 2 seconds...
+	for ( int i = 0 ; i < 2000 ; i++ )
+	{
+		chThdSleepMilliseconds(1);
+		if ( (palReadPad(GPIOA, GPIOA_BTN0)==1) || (palReadPad(GPIOA, GPIOA_BTN1)==1) ) // HIGH == not pressed
+		{
+			// buttons aren't set, don't bootload!
+			jumpToApp(FLASH_USER_BASE);
+			return 0;
+		}
+	}
+
+	for ( int i = 0 ; i < 20 ; i++ )
+	{
+		palTogglePad(GPIOB, GPIOB_LED1);
+		palTogglePad(GPIOB, GPIOB_LED2);
+		palTogglePad(GPIOA, GPIOA_LED3);
+		chThdSleepMilliseconds(50);
+	}
+
+#if HAL_USE_SERIAL
+	sdStart(&SD1, &serial1_cfg);
+	BaseSequentialStream * prnt = (BaseSequentialStream *)&SD1;
+	chprintf(prnt, "%s (bootloader)\n\r\n\r", BOARD_NAME);
+#endif
+
 	chThdSleepMilliseconds(500);
 	palClearPad(GPIOB, GPIOB_LED1);
 	palClearPad(GPIOB, GPIOB_LED2);
@@ -106,18 +132,21 @@ int main(void)
 		loaderError(BOOTLOADER_ERROR_NOFILE);
 
 	// we start flashing now.
-	flashing = TRUE;
 	flash_init(Flash);
+	int records = 0;
 
 	while ((ihexError = Read_IHexRecord(&irec, &fp)) == IHEX_OK)
 	{
-		palTogglePad(GPIOB, GPIOB_LED1);
+		if ( records++%20==0 )
+			palTogglePad(GPIOB, GPIOB_LED1);
 		switch (irec.type)
 		{
 		case IHEX_TYPE_00: //< Data Record
 			address = (((uint32_t) addressOffset) << 16) + irec.address;
 
+#if HAL_USE_SERIAL
 			chprintf(prnt, "Address: %.8x : %.8x\n\r", address, irec.address);
+#endif
 			if (flash_write(Flash, address, irec.data, irec.dataLen) != 0)
 				loaderError(BOOTLOADER_ERROR_BAD_FLASH);
 
@@ -138,15 +167,12 @@ int main(void)
 		}
 	}
 
-	flashing = FALSE;
+	palClearPad(GPIOB, GPIOB_LED1);
 
 	f_close(&fp);
 
 	// Remove firmware so that we do not reflash if something goes wrong
 	f_unlink(FIRMWARE_FILENAME);
-
-	// Wait for write action to have finished
-	chThdSleepMilliseconds(500);
 
 	// unmounts it
 	f_mount(0, NULL);
@@ -168,14 +194,15 @@ int main(void)
 		loaderError(BOOTLOADER_ERROR_BAD_HEX);
 		break;
 	}
+
+	// all good, give a thumbs up and jump to app
+	palSetPad(GPIOB, GPIOB_LED1);
+	palSetPad(GPIOB, GPIOB_LED2);
+	chThdSleepMilliseconds(1000);
+	palClearPad(GPIOB, GPIOB_LED1);
+	palClearPad(GPIOB, GPIOB_LED2);
+
 	jumpToApp(FLASH_USER_BASE);
-
-	while (TRUE)
-	{
-		palTogglePad(GPIOB, GPIOB_LED2);
-		chThdSleepMilliseconds(flashing?100:1000);
-	}
-
 	return 0;
 }
 
@@ -219,7 +246,6 @@ static void jumpToApp(uint32_t address)
 static void loaderError(unsigned int errno)
 {
 	unsigned int i;
-	flashing = FALSE;
 	palClearPad(GPIOB, GPIOB_LED1);
 	palClearPad(GPIOB, GPIOB_LED2);
 	palClearPad(GPIOA, GPIOA_LED3);
