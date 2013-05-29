@@ -1,22 +1,24 @@
 /*
- ChibiOS/RT - Copyright (C) 2006,2007,2008,2009,2010,
- 2011,2012 Giovanni Di Sirio.
+	kuroBox / naniBox
+	Copyright (c) 2013
+	david morris-oliveros // naniBox.com
 
- This file is part of ChibiOS/RT.
+    This file is part of kuroBox / naniBox.
 
- ChibiOS/RT is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation; either version 3 of the License, or
- (at your option) any later version.
+    kuroBox / naniBox is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
 
- ChibiOS/RT is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+    kuroBox / naniBox is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+*/
 
 #include <ch.h>
 #include <hal.h>
@@ -66,107 +68,6 @@ static uint32_t address;
 static enum IHexErrors ihexError;
 
 //-----------------------------------------------------------------------------
-/*
-static WORKING_AREA(waFlasherThread, 1024*2);
-static msg_t FlasherThread(void *arg)
-{
-	(void)arg;
-
-	BaseSequentialStream * prnt = (BaseSequentialStream *)&SD1;
-	if (!sdc_lld_is_card_inserted(&SDCD1))
-		loaderError(BOOTLOADER_ERROR_NOCARD);
-	if (sdcConnect(&SDCD1))
-		loaderError(BOOTLOADER_ERROR_NOCARD);
-
-	chThdSleepMilliseconds(150);
-	int err = f_mount(0, &SDC_FS);
-	if (err != FR_OK)
-	{
-		sdcDisconnect(&SDCD1);
-		loaderError(BOOTLOADER_ERROR_BADFS);
-	}
-
-	chThdSleepMilliseconds(150);
-	FIL fp;
-	if (f_open(&fp, FIRMWARE_FILENAME, FA_READ) != FR_OK)
-		loaderError(BOOTLOADER_ERROR_NOFILE);
-
-	// we start flashing now.
-	IHexRecord irec;
-	uint16_t addressOffset;
-	uint32_t address;
-	enum IHexErrors ihexError;
-	flashing = TRUE;
-
-	flash_init(Flash);
-
-	while ((ihexError = Read_IHexRecord(&irec, &fp)) == IHEX_OK)
-	{
-		palTogglePad(GPIOB, GPIOB_LED1);
-		switch (irec.type)
-		{
-		case IHEX_TYPE_00: //< Data Record
-			address = (((uint32_t) addressOffset) << 16) + irec.address;
-
-			chprintf(prnt, "Address: %.8x : %.8x\n\r", address, irec.address);
-
-			if (flash_write(Flash, address, irec.data, irec.dataLen) != 0)
-				loaderError(BOOTLOADER_ERROR_BAD_FLASH);
-
-			break;
-
-		case IHEX_TYPE_04: //< Extended Linear Address Record
-			addressOffset = (((uint16_t) irec.data[0]) << 8) + irec.data[1];
-			break;
-
-		case IHEX_TYPE_01: //< End of File Record
-		case IHEX_TYPE_05: //< Start Linear Address Record
-			break;
-
-		case IHEX_TYPE_02: //< Extended Segment Address Record
-		case IHEX_TYPE_03: //< Start Segment Address Record
-			loaderError(BOOTLOADER_ERROR_BAD_HEX);
-			break;
-		}
-
-	}
-	//err = linearFlashProgramFinish(&flashPage);
-	flashing = FALSE;
-
-	f_close(&fp);
-
-	// Remove firmware so that we do not reflash if something goes wrong
-	//f_unlink(FIRMWARE_FILENAME);
-
-	// Wait for write action to have finished
-	chThdSleepMilliseconds(500);
-
-	// unmounts it
-	f_mount(0, NULL);
-
-	sdcConnect(&SDCD1);
-
-	if (err)
-		loaderError(BOOTLOADER_ERROR_BAD_FLASH);
-
-	switch (ihexError)
-	{
-	case IHEX_OK:
-	case IHEX_ERROR_EOF:
-		break;
-	case IHEX_ERROR_FILE:
-	case IHEX_ERROR_INVALID_RECORD:
-	case IHEX_ERROR_INVALID_ARGUMENTS:
-	case IHEX_ERROR_NEWLINE:
-		loaderError(BOOTLOADER_ERROR_BAD_HEX);
-		break;
-	}
-	jumpToApp(FLASH_USER_BASE);
-	return 0;
-}
-*/
-
-//-----------------------------------------------------------------------------
 int main(void)
 {
 	halInit();
@@ -185,8 +86,6 @@ int main(void)
 	chThdSleepMilliseconds(500);
 
 	sdcStart(&SDCD1, &sdio_cfg);
-
-//	chThdCreateStatic(waFlasherThread, sizeof(waFlasherThread),	NORMALPRIO, FlasherThread, NULL);
 
 	if (!sdc_lld_is_card_inserted(&SDCD1))
 		loaderError(BOOTLOADER_ERROR_NOCARD);
@@ -282,6 +181,8 @@ int main(void)
 
 
 //-----------------------------------------------------------------------------
+// Code stolen from "matis"
+// http://forum.chibios.org/phpbb/viewtopic.php?f=2&t=338
 static void jumpToApp(uint32_t address)
 {
 	typedef void (*pFunction)(void);
