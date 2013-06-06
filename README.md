@@ -26,3 +26,6 @@ License
 
 The code for my portion of the code is licensed under GPL3+. Other parts 
 of the code are licensed according to what is stated in those files.
+
+The iHex8 reader code comes from:
+https://github.com/vsergeev/libGIS
