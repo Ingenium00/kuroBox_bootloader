@@ -3,10 +3,15 @@
 # NOTE: Can be overridden externally.
 #
 
+#DEBUG_BUILD = yes
+
 # Compiler options here.
 ifeq ($(USE_OPT),)
+ifeq ($(DEBUG_BUILD),yes)
+  USE_OPT = -g -O0 -ggdb -fomit-frame-pointer -falign-functions=16 -std=gnu99
+else
   USE_OPT = -Os -ggdb -fomit-frame-pointer -falign-functions=16 -std=gnu99
-#  USE_OPT = -g -O0 -ggdb -fomit-frame-pointer -falign-functions=16 -std=gnu99
+endif
 endif
 
 # C specific options here (added to USE_OPT).

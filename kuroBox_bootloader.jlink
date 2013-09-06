@@ -1,0 +1,8 @@
+device stm32f407vg
+halt
+r
+loadbin build/kuroBox_bootloader.bin 0x08000000
+verifybin build/kuroBox_bootloader.bin 0x08000000
+r
+go
+exit

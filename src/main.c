@@ -41,7 +41,7 @@
 #define BOOTLOADER_ERROR_OTHER          6
 
 //-----------------------------------------------------------------------------
-static void loaderError(unsigned int errno);
+static void loaderError(uint8_t errno);
 static void jumpToApp(uint32_t address);
 void panic_panic(void);
 
@@ -118,7 +118,7 @@ int main(void)
 	if (sdcConnect(&SDCD1))
 		loaderError(BOOTLOADER_ERROR_NOCARD);
 
-	chThdSleepMilliseconds(150);
+	chThdSleepMilliseconds(500);
 	int err = f_mount(0, &SDC_FS);
 	if (err != FR_OK)
 	{
@@ -126,9 +126,15 @@ int main(void)
 		loaderError(BOOTLOADER_ERROR_BADFS);
 	}
 
-	chThdSleepMilliseconds(150);
 	FIL fp;
-	if (f_open(&fp, FIRMWARE_FILENAME, FA_READ) != FR_OK)
+	for (uint8_t attempts = 0 ; attempts < 10 ; attempts++ )
+	{
+		chThdSleepMilliseconds(500);
+		err = f_open(&fp, FIRMWARE_FILENAME, FA_READ);
+		if ( err == FR_OK)
+			break;
+	}
+	if ( err != FR_OK )
 		loaderError(BOOTLOADER_ERROR_NOFILE);
 
 	// we start flashing now.
@@ -172,7 +178,11 @@ int main(void)
 	f_close(&fp);
 
 	// Remove firmware so that we do not reflash if something goes wrong
-	f_unlink(FIRMWARE_FILENAME);
+	// NOTE: this has been removed since accidental re-flash is not really
+	// possible since the buttons have to be pressed to enter the bootloader,
+	// also, if we don't delete it, that means that a single SD card can go
+	// around a update all devices in one sitting...
+	// f_unlink(FIRMWARE_FILENAME);
 
 	// unmounts it
 	f_mount(0, NULL);
@@ -243,21 +253,23 @@ static void jumpToApp(uint32_t address)
 }
 
 //-----------------------------------------------------------------------------
-static void loaderError(unsigned int errno)
+static void loaderError(uint8_t errno)
 {
-	unsigned int i;
 	palClearPad(GPIOB, GPIOB_LED1);
 	palClearPad(GPIOB, GPIOB_LED2);
 	palClearPad(GPIOA, GPIOA_LED3);
-
-	for (i = 0; i < errno*2; i++)
+	for (uint8_t times = 0 ; times < 5 ; times++)
 	{
-		palTogglePad(GPIOA, GPIOA_LED3);
-		chThdSleepMilliseconds(500);
-	}
 
-	palClearPad(GPIOA, GPIOA_LED3);
-	chThdSleepMilliseconds(1500);
+		for (uint8_t i = 0; i < errno*2; i++)
+		{
+			palTogglePad(GPIOA, GPIOA_LED3);
+			chThdSleepMilliseconds(500);
+		}
+
+		palClearPad(GPIOA, GPIOA_LED3);
+		chThdSleepMilliseconds(2000);
+	}
 
 	jumpToApp(FLASH_USER_BASE);
 }

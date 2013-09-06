@@ -29,7 +29,7 @@
  * Board identifier.
  */
 #define BOARD_NANIBOX_COM__KUROBOX_V11
-#define BOARD_NAME                  "naniBox.com / kuroBox_v11"
+#define BOARD_NAME                  "naniBox.com / kuroBox_v14"
 
 
 /*
@@ -93,9 +93,9 @@
 #define GPIOB_L1_SPI2_MOSI          15
 
 #define GPIOC_VIN_TAP               0
-#define GPIOC_L1_TIMEPULSE          1
+#define GPIOC_L1_GPS_RESET          1
 #define GPIOC_L1_GPS_EXTINT0        2
-#define GPIOC_L1_GPS_RESET          3
+#define GPIOC_L1_TIMEPULSE          3
 #define GPIOC__C04                  4
 #define GPIOC__C05                  5
 #define GPIOC_L1_USART6_TX          6
@@ -115,12 +115,12 @@
 #define GPIOD_L1_VN_NRST            3
 #define GPIOD_SD_DET                4
 #define GPIOD_SD_WP                 5
-#define GPIOD_SERIAL2_PWR           6
-#define GPIOD_SERIAL2_VALID         7
-#define GPIOD_SERIAL2_OC            8
-#define GPIOD_SERIAL1_PWR           9
-#define GPIOD_SERIAL1_VALID         10
-#define GPIOD_SERIAL1_OC            11
+#define GPIOD_SERIAL1_PWR           6
+#define GPIOD_SERIAL1_VALID         7
+#define GPIOD_SERIAL1_OC            8
+#define GPIOD_SERIAL2_PWR           9
+#define GPIOD_SERIAL2_VALID         10
+#define GPIOD_SERIAL2_OC            11
 #define GPIOD_LCD_LED_DRIVE         12
 #define GPIOD__D13                  13
 #define GPIOD__D14                  14
@@ -379,7 +379,7 @@
                                      PIN_MODE_ALTERNATE(GPIOB_USART1_TX) |  \
                                      PIN_MODE_ALTERNATE(GPIOB_USART1_RX) |  \
                                      PIN_MODE_INPUT(GPIOB__B08) |           \
-                                     PIN_MODE_INPUT(GPIOB__B09) |           \
+                                     PIN_MODE_OUTPUT(GPIOB__B09) |           \
                                      PIN_MODE_ALTERNATE(GPIOB_L1_I2C2_SCL) |\
                                      PIN_MODE_ALTERNATE(GPIOB_L1_I2C2_SDA) |\
                                      PIN_MODE_INPUT(GPIOB__B12) |           \
@@ -488,9 +488,9 @@
  * PC15 - OSC32_OUT                 (input floating).
  */
 #define VAL_GPIOC_MODER             (PIN_MODE_ANALOG(GPIOC_VIN_TAP) |       \
-                                     PIN_MODE_INPUT(GPIOC_L1_TIMEPULSE) |   \
-                                     PIN_MODE_INPUT(GPIOC_L1_GPS_EXTINT0) | \
                                      PIN_MODE_INPUT(GPIOC_L1_GPS_RESET) |   \
+                                     PIN_MODE_INPUT(GPIOC_L1_GPS_EXTINT0) | \
+                                     PIN_MODE_INPUT(GPIOC_L1_TIMEPULSE) |   \
                                      PIN_MODE_INPUT(GPIOC__C04) |           \
                                      PIN_MODE_INPUT(GPIOC__C05) |           \
                                      PIN_MODE_ALTERNATE(GPIOC_L1_USART6_TX) |\
@@ -504,9 +504,9 @@
                                      PIN_MODE_INPUT(GPIOC_OSC32_IN) |       \
                                      PIN_MODE_INPUT(GPIOC_OSC32_OUT))
 #define VAL_GPIOC_OTYPER            (PIN_OTYPE_PUSHPULL(GPIOC_VIN_TAP) |    \
-                                     PIN_OTYPE_PUSHPULL(GPIOC_L1_TIMEPULSE) |\
-                                     PIN_OTYPE_PUSHPULL(GPIOC_L1_GPS_EXTINT0) |\
                                      PIN_OTYPE_PUSHPULL(GPIOC_L1_GPS_RESET) |\
+                                     PIN_OTYPE_PUSHPULL(GPIOC_L1_GPS_EXTINT0) |\
+                                     PIN_OTYPE_PUSHPULL(GPIOC_L1_TIMEPULSE) |\
                                      PIN_OTYPE_PUSHPULL(GPIOC__C04) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOC__C05) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOC_L1_USART6_TX) |\
@@ -520,9 +520,9 @@
                                      PIN_OTYPE_PUSHPULL(GPIOC_OSC32_IN) |   \
                                      PIN_OTYPE_PUSHPULL(GPIOC_OSC32_OUT))
 #define VAL_GPIOC_OSPEEDR           (PIN_OSPEED_100M(GPIOC_VIN_TAP) |       \
-                                     PIN_OSPEED_2M(GPIOC_L1_TIMEPULSE) |    \
-                                     PIN_OSPEED_2M(GPIOC_L1_GPS_EXTINT0) |  \
                                      PIN_OSPEED_2M(GPIOC_L1_GPS_RESET) |    \
+                                     PIN_OSPEED_2M(GPIOC_L1_GPS_EXTINT0) |  \
+                                     PIN_OSPEED_2M(GPIOC_L1_TIMEPULSE) |    \
                                      PIN_OSPEED_2M(GPIOC__C04) |            \
                                      PIN_OSPEED_2M(GPIOC__C05) |            \
                                      PIN_OSPEED_100M(GPIOC_L1_USART6_TX) |  \
@@ -536,9 +536,9 @@
                                      PIN_OSPEED_100M(GPIOC_OSC32_IN) |      \
                                      PIN_OSPEED_100M(GPIOC_OSC32_OUT))
 #define VAL_GPIOC_PUPDR             (PIN_PUPDR_PULLUP(GPIOC_VIN_TAP) |      \
-                                     PIN_PUPDR_PULLUP(GPIOC_L1_TIMEPULSE) | \
-                                     PIN_PUPDR_PULLUP(GPIOC_L1_GPS_EXTINT0) |\
                                      PIN_PUPDR_PULLUP(GPIOC_L1_GPS_RESET) | \
+                                     PIN_PUPDR_PULLUP(GPIOC_L1_GPS_EXTINT0) |\
+                                     PIN_PUPDR_PULLUP(GPIOC_L1_TIMEPULSE) | \
                                      PIN_PUPDR_PULLUP(GPIOC__C04) |         \
                                      PIN_PUPDR_PULLUP(GPIOC__C05) |         \
                                      PIN_PUPDR_PULLUP(GPIOC_L1_USART6_TX) | \
@@ -552,9 +552,9 @@
                                      PIN_PUPDR_FLOATING(GPIOC_OSC32_IN) |   \
                                      PIN_PUPDR_FLOATING(GPIOC_OSC32_OUT))
 #define VAL_GPIOC_ODR               (PIN_ODR_HIGH(GPIOC_VIN_TAP) |          \
-                                     PIN_ODR_HIGH(GPIOC_L1_TIMEPULSE) |     \
-                                     PIN_ODR_HIGH(GPIOC_L1_GPS_EXTINT0) |   \
                                      PIN_ODR_HIGH(GPIOC_L1_GPS_RESET) |     \
+                                     PIN_ODR_HIGH(GPIOC_L1_GPS_EXTINT0) |   \
+                                     PIN_ODR_HIGH(GPIOC_L1_TIMEPULSE) |     \
                                      PIN_ODR_HIGH(GPIOC__C04) |             \
                                      PIN_ODR_HIGH(GPIOC__C05) |             \
                                      PIN_ODR_HIGH(GPIOC_L1_USART6_TX) |     \
@@ -568,9 +568,9 @@
                                      PIN_ODR_HIGH(GPIOC_OSC32_IN) |         \
                                      PIN_ODR_HIGH(GPIOC_OSC32_OUT))
 #define VAL_GPIOC_AFRL              (PIN_AFIO_AF(GPIOC_VIN_TAP, 0) |        \
-                                     PIN_AFIO_AF(GPIOC_L1_TIMEPULSE, 0) |   \
-                                     PIN_AFIO_AF(GPIOC_L1_GPS_EXTINT0, 0) | \
                                      PIN_AFIO_AF(GPIOC_L1_GPS_RESET, 0) |   \
+                                     PIN_AFIO_AF(GPIOC_L1_GPS_EXTINT0, 0) | \
+                                     PIN_AFIO_AF(GPIOC_L1_TIMEPULSE, 0) |   \
                                      PIN_AFIO_AF(GPIOC__C04, 0) |           \
                                      PIN_AFIO_AF(GPIOC__C05, 0) |           \
                                      PIN_AFIO_AF(GPIOC_L1_USART6_TX, 8) |   \
@@ -605,7 +605,7 @@
  * PD15 - _D15                      (input pullup).
  */
 #define VAL_GPIOD_MODER             (PIN_MODE_INPUT(GPIOD_L1_VN_SYNC_IN) |  \
-                                     PIN_MODE_INPUT(GPIOD_L1_VN_NSS) |      \
+                                     PIN_MODE_OUTPUT(GPIOD_L1_VN_NSS) |     \
                                      PIN_MODE_ALTERNATE(GPIOD_SDIO_CMD) |   \
                                      PIN_MODE_INPUT(GPIOD_L1_VN_NRST) |     \
                                      PIN_MODE_INPUT(GPIOD_SD_DET) |         \
@@ -637,7 +637,7 @@
                                      PIN_OTYPE_PUSHPULL(GPIOD__D14) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOD__D15))
 #define VAL_GPIOD_OSPEEDR           (PIN_OSPEED_2M(GPIOD_L1_VN_SYNC_IN) |   \
-                                     PIN_OSPEED_2M(GPIOD_L1_VN_NSS) |       \
+                                     PIN_OSPEED_100M(GPIOD_L1_VN_NSS) |       \
                                      PIN_OSPEED_100M(GPIOD_SDIO_CMD) |      \
                                      PIN_OSPEED_2M(GPIOD_L1_VN_NRST) |      \
                                      PIN_OSPEED_2M(GPIOD_SD_DET) |          \
@@ -664,7 +664,7 @@
                                      PIN_PUPDR_PULLUP(GPIOD_SERIAL1_PWR) |  \
                                      PIN_PUPDR_PULLUP(GPIOD_SERIAL1_VALID) |\
                                      PIN_PUPDR_PULLUP(GPIOD_SERIAL1_OC) |   \
-                                     PIN_PUPDR_PULLUP(GPIOD_LCD_LED_DRIVE) |\
+                                     PIN_PUPDR_PULLDOWN(GPIOD_LCD_LED_DRIVE) |\
                                      PIN_PUPDR_PULLUP(GPIOD__D13) |         \
                                      PIN_PUPDR_PULLUP(GPIOD__D14) |         \
                                      PIN_PUPDR_PULLUP(GPIOD__D15))
@@ -680,7 +680,7 @@
                                      PIN_ODR_HIGH(GPIOD_SERIAL1_PWR) |      \
                                      PIN_ODR_HIGH(GPIOD_SERIAL1_VALID) |    \
                                      PIN_ODR_HIGH(GPIOD_SERIAL1_OC) |       \
-                                     PIN_ODR_LOW(GPIOD_LCD_LED_DRIVE) |     \
+                                     PIN_ODR_HIGH(GPIOD_LCD_LED_DRIVE) |     \
                                      PIN_ODR_HIGH(GPIOD__D13) |             \
                                      PIN_ODR_HIGH(GPIOD__D14) |             \
                                      PIN_ODR_HIGH(GPIOD__D15))
