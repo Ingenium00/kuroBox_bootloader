@@ -118,7 +118,7 @@ int main(void)
 	if (sdcConnect(&SDCD1))
 		loaderError(BOOTLOADER_ERROR_NOCARD);
 
-	chThdSleepMilliseconds(500);
+	chThdSleepMilliseconds(150);
 	int err = f_mount(0, &SDC_FS);
 	if (err != FR_OK)
 	{
@@ -129,8 +129,10 @@ int main(void)
 	FIL fp;
 	for (uint8_t attempts = 0 ; attempts < 10 ; attempts++ )
 	{
-		chThdSleepMilliseconds(500);
+		chThdSleepMilliseconds(150);
+		palSetPad(GPIOB, GPIOB_LED1);
 		err = f_open(&fp, FIRMWARE_FILENAME, FA_READ);
+		palClearPad(GPIOB, GPIOB_LED1);
 		if ( err == FR_OK)
 			break;
 	}

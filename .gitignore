@@ -1,14 +1,9 @@
-# Compiled Object files
-*.slo
-*.lo
+# Object files
 *.o
-
-# Compiled Dynamic libraries
-*.so
+*.lst
 
 # Compiled Static libraries
 *.lai
 *.la
 *.a
 /.dep
-/build

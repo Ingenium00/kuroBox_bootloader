@@ -61,7 +61,11 @@ endif
 #
 
 # Define project name here
-PROJECT = kuroBox_bootloader
+ifeq ($(DEBUG_BUILD),yes)
+	PROJECT = kuroBox_bootloader_d
+else
+	PROJECT = kuroBox_bootloader
+endif
 
 # Imported source files and paths
 CHIBIOS = ../../chibios
